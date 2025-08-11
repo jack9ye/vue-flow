@@ -2,11 +2,6 @@
   "name": "@vue-flow/monorepo",
   "version": "0.0.0",
   "private": true,
-  "engines": {
-    "node": "^20",
-    "pnpm": "^9.2.0"
-  },
-  "packageManager": "pnpm@9.3.0",
   "scripts": {
     "dev": "pnpm build && turbo dev --filter='./packages/*' --filter=@vue-flow/examples-vite",
     "dev:docs": "turbo dev --filter=@vue-flow/docs",

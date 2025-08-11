@@ -6,6 +6,9 @@ import { ErrorCode, VueFlowError, warn } from '../utils'
 import { VueFlow } from '../context'
 import { Storage } from '../utils/storage'
 
+// eslint-disable-next-line no-console
+console.log('vue-flow modded version')
+
 type Injection = VueFlowStore | null | undefined
 type Scope = (EffectScope & { vueFlowId: string }) | undefined
 
