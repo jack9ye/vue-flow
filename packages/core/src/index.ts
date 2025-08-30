@@ -3,6 +3,9 @@
  * @module vue-flow
  */
 
+// eslint-disable-next-line no-console
+console.log('vue-flow 1.46.0 modded version')
+
 export { default as VueFlow } from './container/VueFlow/VueFlow.vue'
 
 export { default as Handle } from './components/Handle/Handle.vue'
