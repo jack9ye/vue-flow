@@ -4,7 +4,7 @@
  */
 
 // eslint-disable-next-line no-console
-console.log('vue-flow 1.46.5 modded version')
+console.log('vue-flow 1.48.2 modded version')
 
 export { default as VueFlow } from './container/VueFlow/VueFlow.vue'
 
