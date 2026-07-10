@@ -1,9 +1,15 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, toRef } from 'vue'
+import { computed, onMounted, onUnmounted, ref, toRef, watchEffect } from 'vue'
 import type { HandleProps } from '../../types'
 import { Position } from '../../types'
 import { useHandle, useNode, useVueFlow } from '../../composables'
-import { getDimensions, isDef, isMouseEvent } from '../../utils'
+import {
+  clearHandleIsValidConnection,
+  getDimensions,
+  isDef,
+  isMouseEvent,
+  setHandleIsValidConnection,
+} from '../../utils'
 
 const {
   position = Position.Top,
@@ -59,6 +65,20 @@ const { handlePointerDown, handleClick } = useHandle({
   handleId,
   isValidConnection,
   type,
+})
+
+// 供 edge updater 查找：拖拽固定端时复用该 handle 上的 isValidConnection
+watchEffect(() => {
+  const fn = isValidConnection.value
+  if (fn) {
+    setHandleIsValidConnection(flowId, nodeId, handleId, type.value, fn)
+  } else {
+    clearHandleIsValidConnection(flowId, nodeId, handleId, type.value)
+  }
+})
+
+onUnmounted(() => {
+  clearHandleIsValidConnection(flowId, nodeId, handleId, type.value)
 })
 
 const isConnectable = computed(() => {

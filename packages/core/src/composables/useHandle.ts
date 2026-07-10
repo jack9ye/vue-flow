@@ -183,6 +183,9 @@ export function useHandle({
           connectionRadius.value,
           nodeLookup.value,
           fromHandle,
+          doc,
+          'vue',
+          flowId,
         )
 
         if (!autoPanStarted) {

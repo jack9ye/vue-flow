@@ -12,11 +12,65 @@ import type {
   NodeHandleBounds,
   NodeLookup,
   Result,
+  ValidConnectionFunc,
   XYPosition,
 } from '../types'
 import { getEventPosition, getHandlePosition, getOverlappingArea, nodeToRect } from '.'
 
 const alwaysValid = () => true
+
+// Handle 级 isValidConnection 注册表：edge updater 无法拿到 Handle prop，通过此表复用固定端 handle 的校验器
+const handleIsValidConnectionRegistry = new Map<string, ValidConnectionFunc>()
+
+function handleIsValidConnectionKey(
+  flowId: string | null,
+  nodeId: string,
+  handleId: string | null | undefined,
+  type: HandleType,
+) {
+  return `${flowId ?? ''}:${nodeId}:${handleId ?? ''}:${type}`
+}
+
+export function setHandleIsValidConnection(
+  flowId: string | null,
+  nodeId: string,
+  handleId: string | null | undefined,
+  type: HandleType,
+  isValidConnection: ValidConnectionFunc,
+) {
+  handleIsValidConnectionRegistry.set(handleIsValidConnectionKey(flowId, nodeId, handleId, type), isValidConnection)
+}
+
+export function getHandleIsValidConnection(
+  flowId: string | null,
+  nodeId: string,
+  handleId: string | null | undefined,
+  type: HandleType,
+): ValidConnectionFunc | null {
+  return handleIsValidConnectionRegistry.get(handleIsValidConnectionKey(flowId, nodeId, handleId, type)) ?? null
+}
+
+export function clearHandleIsValidConnection(
+  flowId: string | null,
+  nodeId: string,
+  handleId: string | null | undefined,
+  type: HandleType,
+) {
+  handleIsValidConnectionRegistry.delete(handleIsValidConnectionKey(flowId, nodeId, handleId, type))
+}
+
+export function getHandleDomNode(
+  doc: Document | ShadowRoot,
+  lib: string,
+  flowId: string | null,
+  handle: Pick<HandleElement, 'nodeId' | 'id' | 'type'>,
+): Element | null {
+  return doc.querySelector(`.${lib}-flow__handle[data-id="${flowId}-${handle.nodeId}-${handle.id}-${handle.type}"]`)
+}
+
+function isHandleConnectableEnd(handleDomNode: Element | null): boolean {
+  return !!handleDomNode?.classList.contains('connectable') && handleDomNode.classList.contains('connectableend')
+}
 
 export function resetRecentHandle(handleDomNode: Element): void {
   handleDomNode?.classList.remove('valid', 'connecting', 'vue-flow__handle-valid', 'vue-flow__handle-connecting')
@@ -76,6 +130,9 @@ export function getClosestHandle(
   connectionRadius: number,
   nodeLookup: NodeLookup,
   fromHandle: { nodeId: string; type: HandleType; id?: string | null },
+  doc: Document | ShadowRoot,
+  lib: string,
+  flowId: string | null,
 ): HandleElement | null {
   let closestHandles: HandleElement[] = []
   let minDistance = Number.POSITIVE_INFINITY
@@ -88,6 +145,11 @@ export function getClosestHandle(
     for (const handle of allHandles) {
       // if the handle is the same as the fromHandle we skip it
       if (fromHandle.nodeId === handle.nodeId && fromHandle.type === handle.type && fromHandle.id === handle.id) {
+        continue
+      }
+
+      // skip handles that cannot receive a connection (e.g. connectable=false overlapping a connectable handle)
+      if (!isHandleConnectableEnd(getHandleDomNode(doc, lib, flowId, handle))) {
         continue
       }
 
@@ -143,9 +205,7 @@ export function isValidHandle(
   nodeLookup: NodeLookup,
 ) {
   const isTarget = fromType === 'target'
-  const handleDomNode = handle
-    ? doc.querySelector(`.${lib}-flow__handle[data-id="${flowId}-${handle?.nodeId}-${handle?.id}-${handle?.type}"]`)
-    : null
+  const handleDomNode = handle ? getHandleDomNode(doc, lib, flowId, handle) : null
 
   const { x, y } = getEventPosition(event)
   const handleBelow = doc.elementFromPoint(x, y)

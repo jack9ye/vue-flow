@@ -1,5 +1,5 @@
 import { computed, defineComponent, getCurrentInstance, h, inject, provide, ref, resolveComponent, toRef } from 'vue'
-import type { Connection, EdgeComponent, HandleType, MouseTouchEvent } from '../../types'
+import type { Connection, EdgeComponent, HandleType, MouseTouchEvent, ValidConnectionFunc } from '../../types'
 import { ConnectionMode, Position } from '../../types'
 import { useEdgeHooks, useHandle, useVueFlow } from '../../composables'
 import { EdgeId, EdgeRef, Slots } from '../../context'
@@ -9,6 +9,7 @@ import {
   VueFlowError,
   elementSelectionKeys,
   getEdgeHandle,
+  getHandleIsValidConnection,
   getHandlePosition,
   getMarkerId,
 } from '../../utils'
@@ -62,6 +63,9 @@ const EdgeWrapper = defineComponent({
 
     const edgeUpdaterType = ref<HandleType>('source')
 
+    // edge updater 启动时写入：固定端 Handle 上的 isValidConnection（与从该 handle 拖出新边一致）
+    const edgeUpdaterIsValidConnection = ref<ValidConnectionFunc | null>(null)
+
     const edgeEl = ref<SVGElement | null>(null)
 
     const isSelectable = toRef(() =>
@@ -110,7 +114,7 @@ const EdgeWrapper = defineComponent({
       nodeId,
       handleId,
       type: edgeUpdaterType,
-      isValidConnection,
+      isValidConnection: edgeUpdaterIsValidConnection,
       edgeUpdaterType,
       onEdgeUpdate,
       onEdgeUpdateEnd,
@@ -318,6 +322,11 @@ const EdgeWrapper = defineComponent({
       handleId.value = (isSourceHandle ? edge.value.targetHandle : edge.value.sourceHandle) ?? null
 
       edgeUpdaterType.value = isSourceHandle ? 'target' : 'source'
+
+      // 固定端 handle 的校验器 → 否则回退全局（useHandle 内再处理）
+      edgeUpdaterIsValidConnection.value =
+        getHandleIsValidConnection(vueFlowId, nodeId.value, handleId.value, edgeUpdaterType.value) ??
+        isValidConnection.value
 
       emit.updateStart({ event, edge: edge.value })
 
