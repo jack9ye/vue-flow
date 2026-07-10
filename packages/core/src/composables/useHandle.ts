@@ -215,56 +215,47 @@ export function useHandle({
 
         handleDomNode = result.handleDomNode
         connection = result.connection
-        isValid = isConnectionValid(!!closestHandle, result.isValid)
+
+        // 与 isValidHandle 一致：elementFromPoint 命中优先于几何最近；吸附/状态/松手共用同一目标
+        const connectingHandle = result.toHandle ?? closestHandle
+        const isInsideConnectionRadius = !!(result.toHandle || closestHandle)
+        isValid = isConnectionValid(isInsideConnectionRadius, result.isValid)
+
+        const snappedTo =
+          connectingHandle && isValid
+            ? rendererPointToPoint({ x: connectingHandle.x, y: connectingHandle.y }, viewport.value)
+            : connectionPosition
 
         const newConnection: ConnectionInProgress = {
           // from stays the same
           ...previousConnection,
           isValid,
-          to:
-            result.toHandle && isValid
-              ? rendererPointToPoint({ x: result.toHandle.x, y: result.toHandle.y }, viewport.value)
-              : connectionPosition,
-          toHandle: result.toHandle,
-          toPosition: isValid && result.toHandle ? result.toHandle.position : oppositePosition[fromHandle.position],
-          toNode: result.toHandle ? nodeLookup.value.get(result.toHandle.nodeId)! : null,
+          to: snappedTo,
+          toHandle: connectingHandle,
+          toPosition:
+            isValid && connectingHandle ? connectingHandle.position : oppositePosition[fromHandle.position],
+          toNode: connectingHandle ? nodeLookup.value.get(connectingHandle.nodeId)! : null,
         }
 
-        // we don't want to trigger an update when the connection
-        // is snapped to the same handle as before
+        // 同一吸附目标且端点未变时跳过更新（比较实际用于吸附的 handle，而非仅几何最近）
         if (
           isValid &&
-          closestHandle &&
+          connectingHandle &&
           previousConnection?.toHandle &&
-          newConnection.toHandle &&
-          previousConnection.toHandle.type === newConnection.toHandle.type &&
-          previousConnection.toHandle.nodeId === newConnection.toHandle.nodeId &&
-          previousConnection.toHandle.id === newConnection.toHandle.id &&
+          previousConnection.toHandle.type === connectingHandle.type &&
+          previousConnection.toHandle.nodeId === connectingHandle.nodeId &&
+          previousConnection.toHandle.id === connectingHandle.id &&
           previousConnection.to.x === newConnection.to.x &&
           previousConnection.to.y === newConnection.to.y
         ) {
           return
         }
 
-        const connectingHandle = closestHandle ?? result.toHandle
-
-        updateConnection(
-          connectingHandle && isValid
-            ? rendererPointToPoint(
-                {
-                  x: connectingHandle.x,
-                  y: connectingHandle.y,
-                },
-                viewport.value,
-              )
-            : connectionPosition,
-          connectingHandle,
-          getConnectionStatus(!!connectingHandle, isValid),
-        )
+        updateConnection(snappedTo, connectingHandle, getConnectionStatus(isInsideConnectionRadius, isValid))
 
         previousConnection = newConnection
 
-        if (!closestHandle && !isValid && !handleDomNode) {
+        if (!isInsideConnectionRadius && !isValid && !handleDomNode) {
           return resetRecentHandle(prevActiveHandle)
         }
 

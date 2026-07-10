@@ -4,3 +4,8 @@ packages:
   - examples/*
   - tests
   - docs
+allowBuilds:
+  '@vercel/speed-insights': true
+  cypress: true
+  esbuild: true
+  vue-demi: true
