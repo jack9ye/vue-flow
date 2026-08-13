@@ -82,6 +82,49 @@ export function getEventHandlerParams({
   return [id ? extendedDragItems.find((n) => n.id === id)! : extendedDragItems[0], extendedDragItems]
 }
 
+export function resolvePrimaryDragNodeId(dragItems: NodeDragItem[], mousePos: XYPosition): string | undefined {
+  if (!dragItems.length) {
+    return undefined
+  }
+
+  let bestHitId: string | undefined
+  let bestHitArea = Number.POSITIVE_INFINITY
+
+  for (const item of dragItems) {
+    const width = item.dimensions.width || 0
+    const height = item.dimensions.height || 0
+    const { x, y } = item.from
+
+    if (mousePos.x >= x && mousePos.x <= x + width && mousePos.y >= y && mousePos.y <= y + height) {
+      const area = width * height
+      if (area < bestHitArea) {
+        bestHitArea = area
+        bestHitId = item.id
+      }
+    }
+  }
+
+  if (bestHitId) {
+    return bestHitId
+  }
+
+  let closestId = dragItems[0].id
+  let closestDist = Number.POSITIVE_INFINITY
+
+  for (const item of dragItems) {
+    const cx = item.from.x + (item.dimensions.width || 0) / 2
+    const cy = item.from.y + (item.dimensions.height || 0) / 2
+    const dist = (mousePos.x - cx) ** 2 + (mousePos.y - cy) ** 2
+
+    if (dist < closestDist) {
+      closestDist = dist
+      closestId = item.id
+    }
+  }
+
+  return closestId
+}
+
 function getExtentPadding(padding: CoordinateExtentRange['padding']): [number, number, number, number] {
   if (Array.isArray(padding)) {
     switch (padding.length) {

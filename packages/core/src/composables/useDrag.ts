@@ -12,6 +12,7 @@ import {
   getEventPosition,
   handleNodeClick,
   hasSelector,
+  resolvePrimaryDragNodeId,
   snapPosition,
 } from '../utils'
 import { useGetPointerPosition, useVueFlow } from '.'
@@ -75,6 +76,7 @@ export function useDrag(params: UseDragParams) {
   let dragEvent: MouseEvent | null = null
   let dragStarted = false
   let nodePositionsChanged = false
+  let primaryDragNodeId: string | undefined
 
   let autoPanId = 0
   let autoPanStarted = false
@@ -117,7 +119,7 @@ export function useDrag(params: UseDragParams) {
 
     if (dragEvent) {
       const [currentNode, nodes] = getEventHandlerParams({
-        id,
+        id: primaryDragNodeId,
         dragItems,
         findNode,
       })
@@ -174,9 +176,11 @@ export function useDrag(params: UseDragParams) {
     lastPos = pointerPos
     dragItems = getDragItems(nodeLookup.value, nodesDraggable.value, pointerPos, id)
 
+    primaryDragNodeId = id ?? resolvePrimaryDragNodeId(dragItems, pointerPos)
+
     if (dragItems.length) {
       const [currentNode, nodes] = getEventHandlerParams({
-        id,
+        id: primaryDragNodeId,
         dragItems,
         findNode,
       })
@@ -255,7 +259,7 @@ export function useDrag(params: UseDragParams) {
       }
 
       const [currentNode, nodes] = getEventHandlerParams({
-        id,
+        id: primaryDragNodeId,
         dragItems,
         findNode,
       })
@@ -267,6 +271,7 @@ export function useDrag(params: UseDragParams) {
     dragging.value = false
     autoPanStarted = false
     dragStarted = false
+    primaryDragNodeId = undefined
     lastPos = { x: undefined, y: undefined }
 
     cancelAnimationFrame(autoPanId)
