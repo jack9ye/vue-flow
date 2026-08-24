@@ -104,6 +104,11 @@ export function getEdgeZIndex(edge: GraphEdge, findNode: Actions['findNode'], el
 
   if (elevateEdgesOnSelect) {
     z = hasZIndex ? edge.zIndex! : Math.max(source.computedPosition.z || 0, target.computedPosition.z || 0)
+
+    // selected nodes already contribute +1000 via computedPosition.z; selected edges need the same bump
+    if (edge.selected) {
+      z += 1000
+    }
   }
 
   return z
