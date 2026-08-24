@@ -1,11 +1,21 @@
 <script lang="ts" setup>
-import { toRef } from 'vue'
+import { computed, toRef } from 'vue'
 import type { TeleportProps } from 'vue'
-import { useVueFlow } from '../../composables'
+import { useEdge, useVueFlow } from '../../composables'
+import { getEdgeZIndex } from '../../utils'
 
-const { viewportRef } = useVueFlow()
+const { viewportRef, findNode, elevateEdgesOnSelect } = useVueFlow()
+const { edge } = useEdge()
 
 const teleportTarget = toRef(() => viewportRef.value?.getElementsByClassName('vue-flow__edge-labels')[0] as TeleportProps['to'])
+
+// labels teleport out of the edge svg; same z as getEdgeZIndex so they ride the edge's stacking band
+const labelLayerStyle = computed(() => ({
+  position: 'absolute' as const,
+  inset: 0,
+  pointerEvents: 'none' as const,
+  zIndex: getEdgeZIndex(edge, findNode, elevateEdgesOnSelect.value),
+}))
 </script>
 
 <script lang="ts">
@@ -19,7 +29,9 @@ export default {
   <svg>
     <foreignObject height="0" width="0">
       <Teleport :to="teleportTarget" :disabled="!teleportTarget">
-        <slot />
+        <div :style="labelLayerStyle">
+          <slot />
+        </div>
       </Teleport>
     </foreignObject>
   </svg>

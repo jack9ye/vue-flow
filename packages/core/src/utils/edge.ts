@@ -91,6 +91,11 @@ export function isEdgeVisible({
   return overlappingArea > 0
 }
 
+// Viewport paints edge svgs, then teleported labels, then nodes.
+// Two stacking bands (must stay aligned with NodeWrapper's selected +1000):
+//   0    — unselected edges / labels / nodes. Same band, DOM order: edge < label < node.
+//   1000 — selected nodes, their connected edges, selected edges, and those labels.
+// Labels leave the edge svg via EdgeLabelRenderer; that wrapper must use this same z.
 export function getEdgeZIndex(edge: GraphEdge, findNode: Actions['findNode'], elevateEdgesOnSelect = false) {
   const hasZIndex = typeof edge.zIndex === 'number'
   let z = hasZIndex ? edge.zIndex! : 0
@@ -104,10 +109,8 @@ export function getEdgeZIndex(edge: GraphEdge, findNode: Actions['findNode'], el
 
   if (elevateEdgesOnSelect) {
     z = hasZIndex ? edge.zIndex! : Math.max(source.computedPosition.z || 0, target.computedPosition.z || 0)
-
-    // selected nodes already contribute +1000 via computedPosition.z; selected edges need the same bump
     if (edge.selected) {
-      z += 1000
+      z = Math.max(z, 1000)
     }
   }
 
